@@ -1,1 +1,243 @@
 iOS 7 #8
+
+@1 Protocols
+  how to make id a little bit safer
+@2 Blocks
+  passing a block of code as an argument to a method
+@3 Animation
+  dynamic animator 
+  view property animation
+@4 Demo 
+  dropit
+  
+
+/*  Protocols
+Declaring a @protocol  
+//看起来很像 @interface 但是没有@implementation
+
+@protocol Foo
+-(void) someMethod;
+-(void) methodWithArgument:(BOOL)argument;
+@property (readonly) int readonlyProperty; // getter(ontly) is part of this protocol
+@property NSString *readwriteProperty;     // getter and setter are both in the protocol 
+-(int)methodThatRetruenSomething;
+@end
+// 调用这个协议，必须调用所有的方法  anyone implementing this protocol must implement them all
+
+@protocol Foo
+-(void)someMethod;
+@optional
+-(void)methodWithArgument:(BOOL)argument;
+@property (readonly) int readonlyProperty;
+@property NSString *readwriteProperty;
+-(int) methodThatReturnsSomething;
+@end
+//只调用someMethod也可以说是调用了Foo
+
+@protocol Foo
+-(void)someMethod;
+@optional
+-(void)methodWithArgument:(BOOL)argument;
+@required
+@property (readonly) int readonlyProperty;
+@property NSString *readwriteProperty;
+-(int)methodThatReturnsSomething
+@end
+//现在所有都需要调用
+
+@protocol Foo<Xyzzy>
+-(void)someMethod;
+@optional
+-(void)methodWithArgument:(BOOL)argument;
+@required
+@property(readonly) int readonlyProperty;
+@property NSString *readwriteProperty;
+-(int)methodThatReturnsSomething;
+@end
+//现在除了methodWithArgument 都是必须的。 而且只有在调用了Xyzzy 协议中的方法
+  才算是调用了Foo
+  
+@protocol Foo<Xyzzy, NSObject>
+-(void) someMethod;
+@optional
+-(void)methodWithArgument:(BOOL)arguemnt;
+@required
+@property(readonly)int readonlyProperty;
+@property NSString *readwriteProperty;
+-(int)methodThatReturenSomething;
+@end
+//现在除了methodWithArgument 都是必须的。 而且只有在调用了Xyzzy 和NSObject协议中的方法
+  才算是调用了Foo
+
+Example:
+#import "Foo.h"                   // importing the header file that declares the Foo @protocol
+@interface MyClass : NSObject <Foo> // MyClass is syaing it implements the Foo @protocol
+// 不用再次declare Foo 的方法
+@end
+...or ("or" not "and" .. it's one or the other , private or public , not both)
+@interface MyClass() <Foo>
+@end
+
+@implementation MyClass
+// in either case, you had better implement Foo's @required methods here
+@end
+
+// 总之有协议的话， 除了option 一定呀应用
+
+
+
+/     Blocks
+
+1. can use local variables declared before the block inside the block
+  double stopValue = 53.3;
+  [aDictionary enumerateKeysAndObjectsUsingBlock:^(id key, id value, BOOL *stop)] {
+      NSLog(@"value for key %@ is %@", key, value);
+      if([@"ENOUGH" isEqualToString:key] || ([value doubleValue] == stopValue)) {
+          *stop = YES;
+      }
+  }];
+  
+2. but they are read only
+  BOOL stoppedEarly = NO;
+  double stopValue = 53.5;
+  [aDictionary enumerateKeysAndObjectsUsingBlock:^(id key, id value, BOOL *stop)] {
+      NSLog(@"value for key %@ is %@", key, value);
+      if([@"ENOUGH" isEqualToString:key] || ([value doubleValue] == stopValue)) {
+          *stop = YES;
+          stoppedEarly = YES; // ILLEGAL
+      }
+  }];
+
+3.unless you mark the local variable as __block
+
+  __block BOOL stoppedEarly = NO;
+  double stopValue = 53.5;
+  [aDictionary enumerateKeysAndObjectsUsingBlock:^(id key, id value, BOOL *stop) {
+    NSLog(@“value for key %@ is %@”, key, value);
+    if ([@“ENOUGH” isEqualToString:key] || ([value doubleValue] == stopValue)) {
+        ￼*stop = YES;
+        stoppedEarly = YES;  // this is legal now
+  } }];
+  if (stoppedEarly) NSLog(@“I stopped logging dictionary values early!”);
+
+4. so what about objects which are messaged inside the block?
+ 如果先定义
+  NSString *stopKey = [@"Enough" uppercaseString];
+  __block BOOL stoppedEarly = NO;
+  double stopValue = 53.5;
+  [aDictionary enumerateKeysAndObjectsUsingBlock:^(id key, id value, BOOL *stop) {
+    NSLog(@“value for key %@ is %@”, key, value);
+    if ([stopKey isEqualToString:key] || ([value doubleValue] == stopValue)) {  // 此处换成了stopKey
+        ￼*stop = YES;
+        stoppedEarly = YES;  // this is legal now
+  } }];
+  if (stoppedEarly) NSLog(@“I stopped logging dictionary values early!”);
+  
+  stopKey 会自动有强指针指向， 知道block 结束
+  
+5. Creating a "type" for a variable that can hold a block 
+    自定义类型
+    Example
+    typedef double (^unary_operation_t)(double op) // return double
+    
+    unary_operation_t square;
+    square = ^(double operand) { // the value of th esquare variable is a block
+        return operand * operand;
+    }
+    double squareOfFive = square(5.0); // squareOfFive would have the value 25.0 after this
+    
+    (并非强制用typedef， 也可以如下)
+    double (^square)(double op) = ^(double op) {return op * op;};
+    
+6. 还有一些不懂得~ 用到的时候再补
+
+  http://blog.csdn.net/zwf_apple/article/details/17708285  // block的作用
+
+
+/*  UIView Animation
+
+    + (void)animateWithDuration:(NSTimeInterval)duration
+                          delay:(NSTimeInterval)delay
+                        options:(UIViewAnimationOptions)options
+                     animations:(void (^)(void))animations
+                     completion:(void (^)(BOOL finished))completion;
+                     
+    Example:
+    [UIView animateWithDuration:3.0
+                          delay:0.0
+                          options: UIViewAnimationOptionBeginFromCurrentState
+                          animations:^{ myView.alpha = 0.0; }
+                          completion:^(BOOL fin) {if (fin) [myView removeFromSuperview];}];
+    首先隐藏myView 3秒， 然后从 view herarchy 中移除myView。 如果在三秒内， 改变了透明度， removal不会发生。 
+ 
+    Example:
+    if (myView.alpha == 1.0) {
+    [UIView animateWithDuration:3.0
+                          delay:2.0
+                        options:UIViewAnimationOptionBeginFromCurrentState
+                     animations:^{ myView.alpha = 0.0; }
+                     completion:nil];
+    NSLog(@“alpha is %f.”, myView.alpha);
+    }
+    myView 3秒后消失， 但是NSLog（）马上发生， 并且显示alpha = 0. 也就是说animation block 马上执行，但是the 
+    visual appearance of the change to alpha 在2s 时开始， 并且花了3秒。
+    
+    BeginFromCurrentState
+    AllowUserInteraction
+    LayoutSubviews
+    Repeat
+    Autoreverse
+    OverrideInheritedDuration
+    OverrideInheritedCurve
+    AllowAnimatedContent
+    CurveEaseInEaseOut
+    CurveEaseIn
+    CurveLinear
+    // interrupt other, in-progress animations of these properties
+    // allow gestures to get processed while animation is in progress // animate the relayout of subviews along with a parent’s animation // repeat indefinitely
+    // play animation forwards, then backwards
+    // if not set, use duration of any in-progress animation
+    // if not set, use curve (e.g. ease-in/out) of in-progress animation // if not set, just interpolate between current and end state image // slower at the beginning, normal throughout, then slow at end
+    // slower at the beginning, but then constant through the rest
+    // same speed throughout
+ 
+    
+    UIView Animation
+    UIViewAnimationOptionsTransitionFlopFrom{Left, Right, Top, Bottom}
+    UIViewAnimationOptionsTransitionCrossDissolve  //Dissolving from old to new state   
+    UICiewAnimationOptionsTransitionCurl{Up, Down}  // Curling up or down
+    
+    + (void)transitionWithView:(UIView *)view
+                  duration:(NSTimeInterval)duration
+                   options:(UIViewAnimationOptions)options
+                animations:(void (^)(void))animations
+                completion:(void (^)(BOOL finished))completion;
+    
+ 
+ 
+ 
+ 
+ 
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
