@@ -216,8 +216,68 @@ Example:
  
  
  
- 
- 
+ /*        Dynamic Animation
+      steps:
+          1. create a UIDynamicAnimator
+          2. Add UIDynamicBehaviors to it (gravity, collisions, etc.)
+          3. Add UIDynamicItems (usually UIViews) to the UIDynamicBehaviors
+          
+     #1 Create a UIDynamicAnimator
+     UIDynamicAnimator *animator = [[UIDynamicAnimator alloc] initWithReferenceView:aView]
+     // aView 是整个动态图
+     
+     #2 Create and add UIDynamicBehaviors
+     e.g., UIGravityBehavior *gravity = [[UIGravityBehavior alloc] init];
+           [animator addBehavior:gravity];
+     e.g., UICollisionBehavior *collider = [[UICollisionBehavior alloc] init];
+           [animator addBehavior:collider];
+    
+     Add UIDynamicItems to a UIDynamicBehavior
+     id <UIDynamicItem> item1 = ..;
+     id <UIDynamicItem> item2 = ..;
+     [gravity addItem:item1];
+     [collider addItem:item2];
+     [gravity addItem:item2];
+     
+     The items have to implement the UIDynamicItem protocol
+     @protocol UIDynamicItem
+     @Property (readonly) CGRect bounds;
+     @Property (readwrite) CGPoint center;
+     @property (readwrite) CGAffineTransform transform;
+     @end
+     UIView implements this @protocol
+     
+     如果在animator 运行的时候改变center 或者是 transform 必须call UIDynamicAnimator's
+     -(void)updateItemUsingCurrentState:(id <UIDynamicItem>)item;
+     
+     
+     /*     Behaviors
+     UIGravityBehavior
+     @property CGFloat angle;
+     @property CGFloat magnitude;
+     
+     UICollisionBehavior
+     @property UICollisionBehaviorMode collisionMode; // Items, Boundaries, Everything
+     -(void)addBoundaryWihtIdentifier:(NSString *)identifier forPath:(UIBezierPath *)path;
+     @property BOOL translatesReferenceBoundsIntoBundary; // 将屏幕边界作为边
+     
+     UIAttachmentBehavior
+     -(instancetype)initWithItem:(id <UIDynamicItem>)item attachedToAnchor:(CGPoint)anchor;
+     -(instancetype)initWithItem:(id <UIDynamicItem>)i1 attachedToItem:(id <UIDynamicItem>)i2;
+     - (instancetype)initWithItem:(id <UIDynamicItem>)item offsetFromCenter:(CGPoint)offset ... 
+     @property (readwrite) CGFloat length; // distance between attached things (settable!)
+     Can also control damping and frequency of oscillations.
+     @property (readwrite) CGPoint anchorPoint; // can be reset at any time
+     
+     UISnapBehavior
+     - (instancetype)initWithItem:(id <UIDynamicItem>)item snapToPoint:(CGPoint)point;
+     Imagine four springs at four corners around the item in the new spot.
+     You can control the damping of these “four springs” with @property CGFloat damping;.
+     
+     UIPushBehavior
+     @property UIPushBehaviorMode mode; // Continuous or Instantaneous
+     @property CGVector pushDirection;
+     @property CGFloat magnitude/angle; // magnitude 1.0 moves a 100x100 view at 100 pts/s/s      
  
 
 
