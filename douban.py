@@ -48,14 +48,14 @@ def go():
                     a=int(raw2[y][l1+6:r1-3])
             try:
                 count = 0
-  	while count <= a:
+  	        while count <= a:
                     tup=parse(url1+'?start='+str(count*18))
-            count = count + 1
-                post={'title':name, 'img_number':0, 'imgs':[]}
-                post['img_number']=tup[0]
-                post['imgs']=tup[1]
-                posts['posts'].append(post)
-                posts['number']+=1
+                    count = count + 1
+                    post={'title':name, 'img_number':0, 'imgs':[]}
+                    post['img_number']=tup[0]
+                    post['imgs']=tup[1]
+                    posts['posts'].append(post)
+                    posts['number']+=1
             except:
                 print raw[x+2][l+6:r-2], '404 not found..'
     open(data_douban, 'w').write(json.dumps(posts, indent=4))
