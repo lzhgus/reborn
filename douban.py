@@ -43,8 +43,8 @@ def go():
             m=len(raw2)
             for y in range(m):
                 if sta3_patt in raw2[y]:
-	    l1=raw2[y].find('page=')
- 	    r1=raw2[y].find('</span>')
+	            l1=raw2[y].find('page=')
+ 	            r1=raw2[y].find('</span>')
                     a=int(raw2[y][l1+6:r1-3])
             try:
                 count = 0
